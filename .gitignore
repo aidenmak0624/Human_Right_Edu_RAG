@@ -1,25 +1,18 @@
 # Python
-venv/
 __pycache__/
-*.pyc
-*.pyo
-*.pyd
-.Python
+*.py[cod]
+*.class
 *.so
-*.egg
-*.egg-info/
-dist/
-build/
+.Python
+venv/
+env/
+ENV/
 
 # Environment
 .env
 .env.local
 
-# Databases
-*.db
-*.sqlite
-*.sqlite3
-database/data/*.db
+# ChromaDB
 chromadb/
 
 # IDE
@@ -32,7 +25,5 @@ chromadb/
 .DS_Store
 Thumbs.db
 
-# Project specific
-data/un_documents/*.pdf
-data/processed/
-logs/
+# Logs
+*.log
