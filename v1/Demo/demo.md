@@ -20,7 +20,7 @@ The interface presents **topic cards** representing different human-rights domai
 
 ### 1. **Home Page – Topic Selection**
 
-![Topic Selection Grid](./Demo/preview.webp)
+![Topic Selection Grid](./v1/Demo/preview.webp)
 
 Users begin on the landing page, where they can explore **9 human rights categories**:
 - 📜 Foundational Human Rights
@@ -51,7 +51,7 @@ Clicking a card transitions the interface to the **chat view**. The selected top
 
 ### 3. **Ask a Question**
 
-![Chat Interface](./Demo/preview2.jpg)
+![Chat Interface](./v1/Demo/preview2.jpg)
 
 Users type any question related to the chosen topic in plain English.
 
@@ -72,7 +72,7 @@ How do civil and political rights differ from economic rights?
 
 ### 4. **RAG Response**
 
-![AI Response with Citations](./Demo/preview.jpg)
+![AI Response with Citations](./v1/Demo/preview.jpg)
 
 The backend:
 1. **Retrieves** semantically relevant document chunks from ChromaDB (0.013s)
