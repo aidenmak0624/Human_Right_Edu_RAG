@@ -42,6 +42,24 @@
                 >
                 <button id="send-btn" class="btn-primary">Send</button>
             </div>
+            <div class="chat-controls">
+                <div class="difficulty-selector">
+                    <label for="difficulty">Level:</label>
+                    <select id="difficulty" onchange="updateDifficulty(this.value)">
+                        <option value="beginner">Beginner</option>
+                        <option value="intermediate" selected>Intermediate</option>
+                        <option value="advanced">Advanced</option>
+                    </select>
+                    <span class="difficulty-hint" id="difficulty-hint">
+                        Balanced detail and accessibility
+                    </span>
+                </div>
+                
+                <div class="message-input-wrapper">
+                    <textarea id="message-input" placeholder="Ask a question about human rights..."></textarea>
+                    <button id="send-btn" onclick="sendMessage()">Send</button>
+                </div>
+            </div>
         </div>
     </div>
 

@@ -140,48 +140,261 @@ class SimpleRAG:
         )
 
     # ---------- Generation ----------
+    def _preprocess_context(self, docs: List[str], query: str) -> str:
+    #"""Preprocess retrieved documents for better context"""
+    
+    # Remove very short chunks (likely noise)
+        meaningful_docs = [d for d in docs if len(d.strip()) > 50]
+        
+        if not meaningful_docs:
+            return "\n\n".join(docs)
+        
+        # Deduplicate similar chunks
+        unique_docs = []
+        seen_content = set()
+        
+        for doc in meaningful_docs:
+            # Simple dedup based on first 100 chars
+            signature = doc[:100].lower().strip()
+            if signature not in seen_content:
+                unique_docs.append(doc)
+                seen_content.add(signature)
+        
+        # Join with clear separators
+        context = "\n\n---\n\n".join(unique_docs)
+        
+        # Truncate if too long (Gemini has limits)
+        max_context_chars = 4000
+        if len(context) > max_context_chars:
+            context = context[:max_context_chars] + "\n\n[Context truncated for length]"
+    
+        return context
+    
+    def _postprocess_answer(self, answer: str) -> str:
+        # """Clean and format the AI response"""
+        
+        # Remove common AI disclaimers that aren't needed
+        unwanted_phrases = [
+            "As a helpful assistant,",
+            "I'm here to help,",
+            "Let me help you understand,",
+            "Based on my training,",
+        ]
+        
+        for phrase in unwanted_phrases:
+            answer = answer.replace(phrase, "")
+        
+        # Ensure proper spacing after periods
+        answer = answer.replace(". ", ".  ")
+        
+        # Format bold text (if Gemini uses ** for bold)
+        # Frontend will handle **text** as bold
+        
+        # Trim excess whitespace
+        answer = "\n\n".join(
+            line.strip() for line in answer.split("\n") if line.strip()
+        )
+        
+        return answer.strip()
+    
     def generate_answer(self, query: str, topic: str, difficulty: str = "intermediate") -> str:
-        print(f"\n❓ Question: {query}\n📂 Topic: {topic}")
-
+        #"""Generate answer with context retrieval and difficulty adaptation"""
+        
+        print(f"\n❓ Question: {query}\n📂 Topic: {topic}\n📊 Difficulty: {difficulty}")
+        
+        # Initialize answer variable FIRST
+        answer = ""
+        
+        # Retrieve context
         results = self.retrieve(query, topic, n_results=4)
         if not results or not results.get("documents") or not results["documents"][0]:
-            return "I couldn't find relevant information to answer that question."
-
+            return self._generate_no_context_response(query, topic)
+        
+        # Process retrieved documents
         docs = results["documents"][0]
         metas = results["metadatas"][0]
-        dists  = results.get("distances", [[None]*len(docs)])[0]
+        dists = results.get("distances", [[None]*len(docs)])[0]
+        
+        # Rank by relevance
         rank = sorted(range(len(docs)), key=lambda i: dists[i] if dists[i] is not None else 1e9)[:3]
-        context = "\n\n".join(docs[i] for i in rank)
+        raw_docs = [docs[i] for i in rank]
+        context = self._preprocess_context(raw_docs, query)
         sources = [f"{metas[i].get('source','?')} (score={dists[i]:.3f})" for i in rank]
-
-        prompt = f"""You are a helpful educational assistant specializing in human rights.
-
-Context from authoritative documents:
-{context}
-
-Question: {query}
-
-Instructions:
-- Provide a clear, accurate answer based on the context
-- Adjust explanation for {difficulty} level
-- Be educational and helpful
-- If unsure, acknowledge limitations
-
-Answer:"""
-
+        
+        # Build enhanced prompt
+        prompt = self._build_enhanced_prompt(query, context, topic, difficulty)
+        
+        # Generate with error handling
         try:
             resp = self.model.generate_content(prompt)
+            # Get the text FIRST
             answer = (getattr(resp, "text", "") or "").strip()
+            # THEN postprocess it
+            answer = self._postprocess_answer(answer)
+            
             if not answer:
-                answer = "No response generated."
+                answer = "I apologize, but I couldn't generate a response. Please try rephrasing your question."
+                
         except Exception as e:
-            answer = f"Generation failed: {e}"
-
+            print(f"⚠️ Generation error: {e}")
+            answer = "I encountered an error while processing your question. Please try again."
+        
+        # Add citations
         citation = "\n\n📚 Sources: " + ", ".join(sorted(set(sources)))
         return answer + citation
 
 
+    def _build_enhanced_prompt(self, query: str, context: str, topic: str, difficulty: str) -> str:
+        """Build prompt with difficulty-level adaptation"""
+        
+        # Difficulty-specific instructions
+        difficulty_instructions = {
+            "beginner": """
+    - Use simple, everyday language
+    - Avoid legal jargon unless you explain it
+    - Provide concrete examples (e.g., "Like the right to go to school")
+    - Use analogies ("Think of it like...")
+    - Keep explanations brief and clear
+    - Focus on practical understanding
+    - Start with simplest explanation first""",
+            
+            "intermediate": """
+    - Balance technical accuracy with accessibility
+    - Use legal terminology when appropriate, with context
+    - Provide structured explanations with examples
+    - Include relevant details without overwhelming
+    - Connect concepts to real-world applications""",
+            
+            "advanced": """
+    - Use precise legal and academic terminology
+    - Reference specific articles and frameworks
+    - Provide comprehensive analysis
+    - Include nuanced interpretations
+    - Connect to broader human rights discourse"""
+        }
+        
+        instructions = difficulty_instructions.get(difficulty, difficulty_instructions["intermediate"])
+        
+        # Get few-shot examples
+        examples = self._get_example_qas(difficulty)
+        
+        # Build the prompt with examples
+        prompt = f"""You are an expert human rights educator specializing in international law and human rights frameworks.
+
+    **Example Responses at {difficulty.title()} Level:**
+    {examples}
+
+    **Now answer this question following the same style and depth:**
+
+    **Context from Authoritative Documents:**
+    {context}
+
+    **Student Question:**
+    {query}
+
+    **Topic Context:** {topic.replace('_', ' ').title()}
+
+    **Instructions for {difficulty.title()}-Level Response:**
+    {instructions}
+
+    **Response Structure:**
+    1. Direct Answer: Start with a clear, direct response to the question
+    2. Explanation: Provide detailed explanation grounded in the provided context
+    3. Key Points: Highlight 2-3 essential takeaways
+    4. Context: Connect to broader human rights frameworks when relevant
+
+    **Critical Guidelines:**
+    - Base your answer ONLY on the provided context
+    - If the context doesn't contain enough information, acknowledge limitations
+    - Cite specific documents or articles when making claims
+    - Maintain educational tone - explain, don't just state
+    - Use examples to illustrate abstract concepts
+
+    **Response Length Guidelines:**
+    - Beginner: 150-250 words
+    - Intermediate: 250-400 words  
+    - Advanced: 400-600 words (comprehensive but focused)
+
+    **Response Format:**
+    - Use clear paragraphs
+    - Bold key concepts (use **bold**)
+    - Use numbered lists for steps or multiple points
+
+    **Now provide your response:**"""
+        
+        return prompt
+
+
+    def _generate_no_context_response(self, query: str, topic: str) -> str:
+        """Handle cases where no relevant context is found"""
+        return f"""I couldn't find specific information about "{query}" in the {topic.replace('_', ' ')} documents currently available.
+
+    This could mean:
+    - The question is outside the scope of loaded documents
+    - The question needs to be rephrased for better matching
+    - The topic category might not be the best fit
+
+    **Suggestions:**
+    1. Try rephrasing your question with different keywords
+    2. Check if another topic category might be more relevant
+    3. Ask a more specific question about a particular aspect
+
+    I'm here to help with questions about human rights based on authoritative UN documents and international frameworks."""
+
+
+    def _get_example_qas(self, difficulty: str) -> str:
+        """Provide example Q&As for few-shot learning"""
+        
+        examples = {
+            "beginner": """
+    **Example 1:**
+    Q: What are human rights?
+    A: Human rights are basic rights and freedoms that belong to every person in the world, from birth until death. They include things like the right to life, freedom from torture, freedom of speech, and the right to education. Think of them as the fundamental things everyone deserves, no matter who they are or where they live.
+
+    **Key Points:**
+    - Universal (for everyone)
+    - Protect human dignity
+    - Can't be taken away
+
+    **Example 2:**
+    Q: Why are human rights important?
+    A: Human rights are important because they protect people from harm and ensure everyone is treated fairly. For example, the right to education means all children can go to school. The right to freedom of speech means you can express your opinions. These rights help create a society where everyone can live safely and pursue their goals.""",
+            
+            "intermediate": """
+    **Example:**
+    Q: What is the relationship between civil-political rights and economic-social-cultural rights?
+    A: Civil and political rights (like freedom of speech and voting rights) and economic, social, and cultural rights (like the right to education and adequate housing) are interdependent and mutually reinforcing.
+
+    **The Connection:**
+    The 1993 Vienna Declaration emphasizes that all human rights are "universal, indivisible and interdependent and interrelated." This means:
+    - You need freedom of expression (civil right) to advocate for better working conditions (economic right)
+    - Access to education (social right) enables political participation (political right)
+    - Economic security supports the exercise of cultural rights
+
+    **Key Framework:**
+    Both sets of rights are protected under international law through the ICCPR (civil-political) and ICESCR (economic-social-cultural) covenants, which together with the UDHR form the International Bill of Human Rights.""",
+            
+            "advanced": """
+    **Example:**
+    Q: How does Article 29 of the UDHR establish the framework for limitations on rights?
+    A: Article 29 of the Universal Declaration of Human Rights establishes the foundational principles for permissible limitations on rights and freedoms, creating a delicate balance between individual liberties and communal responsibilities.
+
+    **Legal Framework:**
+    Article 29 articulates three critical dimensions:
+
+    1. **Duties to Community** (Article 29.1): Establishes that rights exist within a social context where "everyone has duties to the community in which alone the free and full development of his personality is possible." This reflects the principle that rights and responsibilities are correlative.
+
+    2. **Permissible Limitations** (Article 29.2): Limitations must be "determined by law" and serve legitimate aims: "due recognition and respect for the rights and freedoms of others" and "just requirements of morality, public order and the general welfare in a democratic society."
+
+    3. **Adherence to UN Principles** (Article 29.3): Rights cannot be exercised "contrary to the purposes and principles of the United Nations," ensuring alignment with international peace, security, and human dignity.
+
+    **Interpretive Significance:**
+    This tripartite structure provides the doctrinal foundation for proportionality analysis in human rights adjudication, requiring that any restriction be: (1) prescribed by law, (2) pursue a legitimate aim, and (3) be necessary and proportionate in a democratic society."""
+        }
+        
+        return examples.get(difficulty, examples["intermediate"])
 # ---------- Quick test ----------
+
 def test_rag():
     print("=" * 60)
     print("🌍 Testing Human Rights RAG System")
