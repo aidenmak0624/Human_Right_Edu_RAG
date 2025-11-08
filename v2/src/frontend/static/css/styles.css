@@ -252,3 +252,450 @@ header p {
     display: flex;
     gap: 10px;
 }
+/* ============================================
+   CONVERSATION STYLES
+   ============================================ */
+
+.message {
+    margin: 15px 0;
+    padding: 15px 20px;
+    border-radius: 18px;
+    max-width: 75%;
+    word-wrap: break-word;
+    animation: messageSlideIn 0.3s ease-out;
+}
+
+@keyframes messageSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.user-message {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    margin-left: auto;
+    text-align: right;
+}
+
+.ai-message {
+    background: #f5f5f5;
+    color: #333;
+    margin-right: auto;
+    border: 1px solid #e0e0e0;
+}
+
+.message-content {
+    line-height: 1.6;
+    margin-bottom: 8px;
+}
+
+.message-content p {
+    margin: 10px 0;
+}
+
+.message-time {
+    font-size: 11px;
+    opacity: 0.6;
+    margin-top: 5px;
+}
+
+.message-actions {
+    margin-top: 10px;
+    display: flex;
+    gap: 8px;
+}
+
+/* ============================================
+   COPY BUTTON
+   ============================================ */
+
+.copy-btn {
+    padding: 6px 12px;
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 13px;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    transition: all 0.2s;
+}
+
+.copy-btn:hover {
+    background: #f0f0f0;
+    border-color: #999;
+}
+
+.copy-btn.copied {
+    background: #d4edda;
+    border-color: #28a745;
+    color: #155724;
+}
+
+.copy-btn .icon {
+    font-size: 14px;
+}
+
+/* ============================================
+   LOADING ANIMATION
+   ============================================ */
+
+.loading-message {
+    max-width: 100px;
+}
+
+.typing-indicator {
+    display: flex;
+    gap: 4px;
+    padding: 10px 15px;
+    align-items: center;
+}
+
+.typing-indicator span {
+    width: 8px;
+    height: 8px;
+    background: #999;
+    border-radius: 50%;
+    animation: bounce 1.4s infinite ease-in-out both;
+}
+
+.typing-indicator span:nth-child(1) {
+    animation-delay: -0.32s;
+}
+
+.typing-indicator span:nth-child(2) {
+    animation-delay: -0.16s;
+}
+
+@keyframes bounce {
+    0%, 80%, 100% {
+        transform: scale(0);
+        opacity: 0.5;
+    }
+    40% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+/* ============================================
+   SOURCE BADGES
+   ============================================ */
+
+.sources-section {
+    margin-top: 15px;
+    padding-top: 15px;
+    border-top: 1px solid #e0e0e0;
+}
+
+.sources-header {
+    font-size: 13px;
+    color: #666;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.sources-icon {
+    font-size: 16px;
+}
+
+.sources-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.source-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    background: white;
+    border: 1.5px solid #d0d8ff;
+    border-radius: 12px;
+    font-size: 12px;
+    transition: all 0.2s;
+}
+
+.source-badge:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.source-icon {
+    font-size: 14px;
+}
+
+.source-name {
+    color: #333;
+    font-weight: 500;
+}
+
+.source-relevance {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 6px;
+    background: rgba(0,0,0,0.05);
+    border-radius: 8px;
+}
+
+/* ============================================
+   ERROR MESSAGES
+   ============================================ */
+
+.error-message {
+    background: #fff3f3;
+    border: 2px solid #ffcdd2;
+    color: #c62828;
+    max-width: 90%;
+    margin: 15px auto;
+}
+
+.error-icon {
+    font-size: 32px;
+    margin-bottom: 10px;
+}
+
+.error-content strong {
+    display: block;
+    font-size: 16px;
+    margin-bottom: 8px;
+}
+
+.error-content p {
+    font-size: 14px;
+    margin: 0;
+    opacity: 0.9;
+}
+
+.dismiss-btn {
+    margin-top: 12px;
+    padding: 8px 16px;
+    background: white;
+    border: 1px solid #c62828;
+    color: #c62828;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 500;
+}
+
+.dismiss-btn:hover {
+    background: #c62828;
+    color: white;
+}
+
+/* ============================================
+   CHAT HEADER
+   ============================================ */
+
+.chat-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 15px 20px;
+    background: white;
+    border-bottom: 1px solid #e0e0e0;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+.clear-btn {
+    padding: 8px 16px;
+    background: #f5f5f5;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.2s;
+}
+
+.clear-btn:hover {
+    background: #e0e0e0;
+    border-color: #999;
+}
+
+/* Improve input field styling */
+.input-container {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+#user-input {
+    flex: 1;
+    padding: 12px 20px;
+    border: 2px solid #ddd;
+    border-radius: 25px;
+    font-size: 1rem;
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+#user-input:focus {
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+/* Make chat container scrollbar prettier */
+.chat-container::-webkit-scrollbar {
+    width: 8px;
+}
+
+.chat-container::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 10px;
+}
+
+.chat-container::-webkit-scrollbar-thumb {
+    background: #ccc;
+    border-radius: 10px;
+}
+
+.chat-container::-webkit-scrollbar-thumb:hover {
+    background: #999;
+}
+
+/* Improve source badge hover effect */
+.source-badge {
+    cursor: default;
+    user-select: none;
+}
+
+.source-badge:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+/* ============================================
+   FIXED: BACK BUTTON & DROPDOWN STYLING
+   ============================================ */
+
+/* Back to Topics Button - Enhanced */
+#back-btn {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+    color: white !important;
+    padding: 12px 24px !important;
+    border: none !important;
+    border-radius: 25px !important;
+    font-size: 0.95rem !important;
+    cursor: pointer !important;
+    transition: all 0.3s ease !important;
+    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3) !important;
+    font-weight: 500 !important;
+}
+
+#back-btn:hover {
+    transform: translateY(-2px) !important;
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4) !important;
+    background: linear-gradient(135deg, #5568d3 0%, #6a3d8f 100%) !important;
+}
+
+#back-btn:active {
+    transform: translateY(0) !important;
+}
+
+/* Clear Button - Make it match */
+.clear-btn {
+    background: #f8f9fa !important;
+    color: #666 !important;
+    padding: 12px 20px !important;
+    border: 2px solid #ddd !important;
+    border-radius: 25px !important;
+    cursor: pointer !important;
+    font-size: 0.95rem !important;
+    font-weight: 500 !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+    transition: all 0.2s !important;
+}
+
+.clear-btn:hover {
+    background: #e9ecef !important;
+    border-color: #999 !important;
+    transform: translateY(-2px) !important;
+}
+
+/* Difficulty Dropdown - Enhanced */
+#difficulty {
+    padding: 10px 16px !important;
+    border: 2px solid #ddd !important;
+    border-radius: 12px !important;
+    background: white !important;
+    cursor: pointer !important;
+    font-size: 14px !important;
+    font-weight: 500 !important;
+    color: #333 !important;
+    transition: all 0.2s !important;
+    min-width: 140px !important;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05) !important;
+}
+
+#difficulty:hover {
+    border-color: #667eea !important;
+    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.15) !important;
+}
+
+#difficulty:focus {
+    outline: none !important;
+    border-color: #667eea !important;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1) !important;
+}
+
+/* Difficulty Selector Container - Better Spacing */
+.difficulty-selector {
+    display: flex !important;
+    align-items: center !important;
+    gap: 12px !important;
+    margin-bottom: 15px !important;
+    padding: 12px 16px !important;
+    background: #f8f9fa !important;
+    border-radius: 12px !important;
+    border: 1px solid #e9ecef !important;
+}
+
+.difficulty-selector label {
+    font-weight: 600 !important;
+    font-size: 14px !important;
+    color: #555 !important;
+    min-width: 45px !important;
+}
+
+.difficulty-hint {
+    font-size: 13px !important;
+    color: #999 !important;
+    font-style: italic !important;
+    margin-left: auto !important;
+}
+
+/* Chat Header - Consistent Styling */
+.chat-header {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    padding: 20px !important;
+    background: white !important;
+    border-bottom: 2px solid #f0f0f0 !important;
+    margin-bottom: 20px !important;
+    border-radius: 20px 20px 0 0 !important;
+}
+
+.chat-header h2 {
+    margin: 0 !important;
+    color: #333 !important;
+    font-size: 1.4rem !important;
+    font-weight: 600 !important;
+}

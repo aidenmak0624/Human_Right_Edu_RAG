@@ -3,6 +3,8 @@ const API_BASE = 'http://localhost:5050';
 
 // State
 let currentTopic = null;
+let currentDifficulty = 'intermediate';
+let conversationHistory = [];
 
 // Elements
 const topicSelection = document.getElementById('topic-selection');
@@ -14,13 +16,19 @@ const sendBtn = document.getElementById('send-btn');
 const backBtn = document.getElementById('back-btn');
 const currentTopicEl = document.getElementById('current-topic');
 
-// Initialize
+// ============================================
+// INITIALIZATION
+// ============================================
+
 document.addEventListener('DOMContentLoaded', () => {
     loadTopics();
     setupEventListeners();
 });
 
-// Load topics from API
+// ============================================
+// TOPICS
+// ============================================
+
 async function loadTopics() {
     try {
         const response = await fetch(`${API_BASE}/api/topics`);
@@ -39,7 +47,6 @@ async function loadTopics() {
     }
 }
 
-// Create topic card
 function createTopicCard(topic) {
     const card = document.createElement('div');
     card.className = 'topic-card';
@@ -54,7 +61,6 @@ function createTopicCard(topic) {
     return card;
 }
 
-// Select topic
 function selectTopic(topic) {
     currentTopic = topic;
     currentTopicEl.textContent = topic.name;
@@ -65,20 +71,32 @@ function selectTopic(topic) {
     
     // Clear chat
     chatContainer.innerHTML = '';
+    conversationHistory = [];
     
     // Add welcome message
-    addBotMessage(`Welcome! Ask me anything about ${topic.name}.`);
+    const welcomeDiv = document.createElement('div');
+    welcomeDiv.className = 'message ai-message';
+    welcomeDiv.innerHTML = `
+        <div class="message-content">
+            Welcome! Ask me anything about ${topic.name}.
+        </div>
+    `;
+    chatContainer.appendChild(welcomeDiv);
     
     // Focus input
     userInput.focus();
 }
 
-// Setup event listeners
+// ============================================
+// EVENT LISTENERS
+// ============================================
+
 function setupEventListeners() {
     sendBtn.addEventListener('click', sendMessage);
     
-    userInput.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') {
+    userInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
             sendMessage();
         }
     });
@@ -87,26 +105,45 @@ function setupEventListeners() {
         topicSelection.classList.remove('hidden');
         chatSection.classList.add('hidden');
         currentTopic = null;
+        conversationHistory = [];
     });
 }
 
-// Send message
+// ============================================
+// DIFFICULTY
+// ============================================
+
+function updateDifficulty(level) {
+    currentDifficulty = level;
+    
+    const hints = {
+        'beginner': 'Simple explanations with examples',
+        'intermediate': 'Balanced detail and accessibility',
+        'advanced': 'Comprehensive legal analysis'
+    };
+    
+    document.getElementById('difficulty-hint').textContent = hints[level];
+}
+
+// ============================================
+// MESSAGING
+// ============================================
+
 async function sendMessage() {
     const query = userInput.value.trim();
     
-    if (!query) return;
+    if (!query || !currentTopic) return;
     
     // Add user message
-    addUserMessage(query);
+    displayUserMessage(query);
     
     // Clear input
     userInput.value = '';
     
     // Show loading
-    const loadingId = addLoadingMessage();
+    showLoadingIndicator();
     
     try {
-        // Call API
         const response = await fetch(`${API_BASE}/api/chat`, {
             method: 'POST',
             headers: {
@@ -114,86 +151,238 @@ async function sendMessage() {
             },
             body: JSON.stringify({
                 query: query,
-                topic: currentTopic.id
+                topic: currentTopic.id,
+                difficulty: currentDifficulty
             })
         });
         
-        const data = await response.json();
+        removeLoadingIndicator();
         
-        // Remove loading
-        removeMessage(loadingId);
-        
-        if (response.ok) {
-            // Add bot response
-            addBotMessage(data.answer, data.sources);
-        } else {
-            addBotMessage(`Error: ${data.error || 'Something went wrong'}`);
+        if (!response.ok) {
+            throw new Error(`Server error: ${response.status}`);
         }
         
+        const data = await response.json();
+        
+        if (data.error) {
+            throw new Error(data.error);
+        }
+        
+        displayAIMessage(data.answer, data.sources);
+        
     } catch (error) {
-        removeMessage(loadingId);
-        addBotMessage('Sorry, I encountered an error. Please try again.');
+        removeLoadingIndicator();
         console.error('Error:', error);
+        displayError('Failed to get response. Please check your connection and try again.');
     }
 }
 
-// Add user message
-function addUserMessage(text) {
-    const message = document.createElement('div');
-    message.className = 'message user';
-    message.innerHTML = `
-        <div class="message-content">${escapeHtml(text)}</div>
+// ============================================
+// DISPLAY FUNCTIONS
+// ============================================
+
+function displayUserMessage(message) {
+    const userDiv = document.createElement('div');
+    userDiv.className = 'message user-message';
+    userDiv.innerHTML = `
+        <div class="message-content">${escapeHtml(message)}</div>
+        <div class="message-time">${getCurrentTime()}</div>
     `;
-    chatContainer.appendChild(message);
+    chatContainer.appendChild(userDiv);
+    
+    conversationHistory.push({
+        role: 'user',
+        content: message,
+        timestamp: new Date()
+    });
+    
     scrollToBottom();
 }
 
-// Add bot message
-function addBotMessage(text, sources = []) {
-    const message = document.createElement('div');
-    message.className = 'message bot';
+function displayAIMessage(answer, sources) {
+    const aiDiv = document.createElement('div');
+    aiDiv.className = 'message ai-message';
+    aiDiv.innerHTML = `
+        <div class="message-content">${formatAnswer(answer)}</div>
+        ${createSourcesHTML(sources)}
+        <div class="message-actions">
+            <button class="copy-btn" onclick="copyToClipboard(this)">
+                <span class="icon">📋</span> Copy
+            </button>
+        </div>
+        <div class="message-time">${getCurrentTime()}</div>
+    `;
+    chatContainer.appendChild(aiDiv);
     
-    let html = `<div class="message-content">${escapeHtml(text)}`;
+    conversationHistory.push({
+        role: 'assistant',
+        content: answer,
+        sources: sources,
+        timestamp: new Date()
+    });
     
-    if (sources && sources.length > 0) {
-        html += `<div class="sources">📚 Sources: ${sources.join(', ')}</div>`;
+    scrollToBottom();
+}
+
+function showLoadingIndicator() {
+    const loadingDiv = document.createElement('div');
+    loadingDiv.className = 'message ai-message loading-message';
+    loadingDiv.id = 'loading-indicator';
+    loadingDiv.innerHTML = `
+        <div class="typing-indicator">
+            <span></span>
+            <span></span>
+            <span></span>
+        </div>
+    `;
+    chatContainer.appendChild(loadingDiv);
+    scrollToBottom();
+}
+
+function removeLoadingIndicator() {
+    const loading = document.getElementById('loading-indicator');
+    if (loading) loading.remove();
+}
+
+function displayError(message) {
+    const errorDiv = document.createElement('div');
+    errorDiv.className = 'message error-message';
+    errorDiv.innerHTML = `
+        <div class="error-icon">⚠️</div>
+        <div class="error-content">
+            <strong>Oops! Something went wrong</strong>
+            <p>${escapeHtml(message)}</p>
+        </div>
+        <button class="dismiss-btn" onclick="this.closest('.error-message').remove()">
+            Dismiss
+        </button>
+    `;
+    chatContainer.appendChild(errorDiv);
+    scrollToBottom();
+}
+
+// ============================================
+// SOURCE DISPLAY
+// ============================================
+
+function createSourcesHTML(sources) {
+    if (!sources || sources.length === 0) {
+        return '';
     }
     
-    html += '</div>';
+    const sourceBadges = sources.map(source => {
+        const match = source.match(/(.+?)\s*\(score=([\d.]+)\)/);
+        
+        if (match) {
+            const [_, filename, scoreStr] = match;
+            const score = parseFloat(scoreStr);
+            const relevancePercent = Math.max(0, Math.min(100, (1 - score) * 100)).toFixed(0);
+            const color = getRelevanceColor(relevancePercent);
+            
+            return `
+                <span class="source-badge" style="border-color: ${color}">
+                    <span class="source-icon">📄</span>
+                    <span class="source-name">${escapeHtml(filename)}</span>
+                    <span class="source-relevance" style="color: ${color}">
+                        ${relevancePercent}%
+                    </span>
+                </span>
+            `;
+        }
+        
+        return `
+            <span class="source-badge">
+                <span class="source-icon">📄</span>
+                <span class="source-name">${escapeHtml(source)}</span>
+            </span>
+        `;
+    }).join('');
     
-    message.innerHTML = html;
-    chatContainer.appendChild(message);
-    scrollToBottom();
+    return `
+        <div class="sources-section">
+            <div class="sources-header">
+                <span class="sources-icon">📚</span>
+                <strong>Sources</strong>
+            </div>
+            <div class="sources-list">
+                ${sourceBadges}
+            </div>
+        </div>
+    `;
 }
 
-// Add loading message
-function addLoadingMessage() {
-    const id = 'loading-' + Date.now();
-    const message = document.createElement('div');
-    message.id = id;
-    message.className = 'message bot';
-    message.innerHTML = '<div class="message-content loading">Thinking</div>';
-    chatContainer.appendChild(message);
-    scrollToBottom();
-    return id;
+function getRelevanceColor(percent) {
+    if (percent >= 80) return '#28a745';
+    if (percent >= 60) return '#17a2b8';
+    if (percent >= 40) return '#ffc107';
+    return '#dc3545';
 }
 
-// Remove message
-function removeMessage(id) {
-    const message = document.getElementById(id);
-    if (message) {
-        message.remove();
+// ============================================
+// COPY FUNCTIONALITY
+// ============================================
+
+function copyToClipboard(button) {
+    const messageDiv = button.closest('.ai-message');
+    const contentDiv = messageDiv.querySelector('.message-content');
+    const text = contentDiv.innerText;
+    
+    navigator.clipboard.writeText(text).then(() => {
+        const originalHTML = button.innerHTML;
+        button.innerHTML = '<span class="icon">✅</span> Copied!';
+        button.classList.add('copied');
+        
+        setTimeout(() => {
+            button.innerHTML = originalHTML;
+            button.classList.remove('copied');
+        }, 2000);
+    }).catch(err => {
+        console.error('Failed to copy:', err);
+        alert('Failed to copy to clipboard');
+    });
+}
+
+// ============================================
+// UTILITY FUNCTIONS
+// ============================================
+
+function clearConversation() {
+    if (confirm('Clear conversation history?')) {
+        conversationHistory = [];
+        chatContainer.innerHTML = `
+            <div class="message ai-message">
+                <div class="message-content">
+                    Welcome! Ask me anything about ${currentTopic.name}.
+                </div>
+            </div>
+        `;
     }
 }
 
-// Scroll to bottom
 function scrollToBottom() {
-    chatContainer.scrollTop = chatContainer.scrollHeight;
+    chatContainer.scrollTo({
+        top: chatContainer.scrollHeight,
+        behavior: 'smooth'
+    });
 }
 
-// Escape HTML
+function getCurrentTime() {
+    const now = new Date();
+    return now.toLocaleTimeString('en-US', { 
+        hour: '2-digit', 
+        minute: '2-digit' 
+    });
+}
+
 function escapeHtml(text) {
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
+}
+
+function formatAnswer(answer) {
+    return answer
+        .split('\n\n')
+        .map(p => `<p>${p.replace(/\n/g, '<br>')}</p>`)
+        .join('');
 }
