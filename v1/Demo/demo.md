@@ -51,7 +51,7 @@ Clicking a card transitions the interface to the **chat view**. The selected top
 
 ### 3. **Ask a Question**
 
-![Chat Interface](./v1/Demo/preview2.jpg)
+![Chat Interface](./v1/Demo/preview-2.jpg)
 
 Users type any question related to the chosen topic in plain English.
 
@@ -72,7 +72,7 @@ How do civil and political rights differ from economic rights?
 
 ### 4. **RAG Response**
 
-![AI Response with Citations](./v1/Demo/preview.jpg)
+![AI Response with Citations](./v1/Demo/preview-3.jpg)
 
 The backend:
 1. **Retrieves** semantically relevant document chunks from ChromaDB (0.013s)
@@ -240,11 +240,11 @@ This prototype demonstrates an **AI-assisted learning tool for human-rights educ
 *Nine human rights categories with intuitive icon-based navigation*
 
 ### Chat Interface - Loading
-![Chat Loading](./Demo/preview2.jpg)
+![Chat Loading](./Demo/preview-2.jpg)
 *Real-time processing indicator during RAG retrieval*
 
 ### Chat Interface - Response
-![Chat Response](./Demo/preview3.jpg)
+![Chat Response](./Demo/preview-3.jpg)
 *AI-powered answers with authoritative source citations*
 
 ---
